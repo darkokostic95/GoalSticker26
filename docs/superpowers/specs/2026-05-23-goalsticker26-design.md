@@ -17,9 +17,40 @@ A single-page web app to track Panini FIFA World Cup 2026 sticker duplicates. Pr
 
 ## Album Data
 
-48 national teams, each with exactly 20 stickers identified by team code + number (e.g. `ARG1`–`ARG20`). Total: 960 team stickers. Real Panini codes used throughout (ARG, BRA, FRA, etc.).
+**Total: 980 stickers** across two types of sections:
 
-Teams defined in `src/data/teams.ts` — a static typed array, easy to update if the album data changes.
+### Special section — FWC (20 stickers)
+
+Appears first in the album. All stickers are FOIL.
+
+| Code | Description |
+|------|-------------|
+| `00` | Panini Logo |
+| `FWC1` | Official Emblem |
+| `FWC2` | Official Emblem |
+| `FWC3` | Official Mascots |
+| `FWC4` | Official Slogan |
+| `FWC5` | Official Ball |
+| `FWC6` | Host Country — Canada |
+| `FWC7` | Host Country — Mexico |
+| `FWC8` | Host Country — USA |
+| `FWC9` | FIFA Museum — Italy 1934 |
+| `FWC10` | FIFA Museum — Uruguay 1950 |
+| `FWC11` | FIFA Museum — West Germany 1954 |
+| `FWC12` | FIFA Museum — Brazil 1962 |
+| `FWC13` | FIFA Museum — West Germany 1974 |
+| `FWC14` | FIFA Museum — Argentina 1986 |
+| `FWC15` | FIFA Museum — Brazil 1994 |
+| `FWC16` | FIFA Museum — Brazil 2002 |
+| `FWC17` | FIFA Museum — Italy 2006 |
+| `FWC18` | FIFA Museum — Germany 2014 |
+| `FWC19` | FIFA Museum — Argentina 2022 |
+
+### National team sections — 48 teams (960 stickers)
+
+Each team has exactly 20 stickers using Panini team codes (e.g. `ARG1`–`ARG20`).
+
+Teams: MEX, RSA, KOR, CZE, CAN, BIH, QAT, SUI, BRA, MAR, HAI, SCO, USA, PAR, AUS, TUR, GER, CUW, CIV, ECU, NED, JPN, SWE, TUN, BEL, EGY, IRN, NZL, ESP, CPV, KSA, URU, FRA, SEN, IRQ, NOR, ARG, ALG, AUT, JOR, POR, COD, UZB, COL, ENG, CRO, GHA, PAN
 
 ## File Structure
 
@@ -35,48 +66,51 @@ GoalSticker26/
 └── src/
     ├── main.ts              # entry point: bootstraps app, wires up events
     ├── data/
-    │   └── teams.ts         # 48 teams: code, name, primary color, sticker count
+    │   └── sections.ts      # all 49 sections (1 FWC + 48 teams): code, name, color, stickers[]
     ├── storage.ts           # localStorage read/write
     ├── state.ts             # in-memory app state
     ├── ui/
-    │   ├── header.ts        # sticky top bar with team quick-select dropdown
-    │   ├── grid.ts          # renders one team's 5×4 sticker number grid
-    │   └── teamSection.ts   # combines team heading + grid into a page section
+    │   ├── header.ts        # sticky top bar with section quick-select dropdown
+    │   ├── grid.ts          # renders one section's sticker grid
+    │   └── sectionEl.ts     # combines section heading + grid into a page section
     └── style.css
 ```
 
 ## Data Model
 
-### Team definition (`src/data/teams.ts`)
+### Section definition (`src/data/sections.ts`)
 
 ```typescript
-interface Team {
-  code: string;    // "ARG" — matches Panini album code
-  name: string;    // "Argentina"
-  color: string;   // "#75AADB" — primary color for filled sticker circles
-  count: number;   // 20 for all teams
+interface Section {
+  code: string;      // "ARG", "FWC"
+  name: string;      // "Argentina", "FIFA World Cup"
+  color: string;     // team primary color, or gold (#D4AF37) for FWC
+  stickers: string[]; // ["1","2",...,"20"] for teams; ["00","FWC1",...,"FWC19"] for FWC
 }
 ```
 
-All 48 teams hard-coded with real Panini codes and a primary color derived from each nation's kit/flag palette.
+The `stickers` array holds the display label for each sticker cell. This handles both the simple `1–20` numbering for teams and the mixed codes (`00`, `FWC1`–`FWC19`) for the special section. The grid renders whatever labels are in the list.
+
+All 49 sections hard-coded in `sections.ts` — the FWC section first, followed by 48 national teams in album order.
 
 ### Sticker ownership (`src/storage.ts`)
 
 ```typescript
 // localStorage key: "goalsticker26"
-// Shape: Record<teamCode, boolean[]>
+// Shape: Record<sectionCode, boolean[]>
 // e.g. { "ARG": [true, false, false, true, ...] }
-// index 0 = sticker #1, index 19 = sticker #20
+//       "FWC": [false, true, false, ...]
+// index maps directly to stickers[] position
 ```
 
-Missing teams default to an array of `false` on load. Writes are synchronous on every tap — no debouncing needed at 960 booleans total.
+Missing sections default to an array of `false` on load. Writes are synchronous on every tap — no debouncing needed at 980 booleans total.
 
 ### In-memory state (`src/state.ts`)
 
 ```typescript
 interface AppState {
   owned: Record<string, boolean[]>;  // hydrated from localStorage on boot
-  activeTeam: string;                // team code currently scrolled into view
+  activeSection: string;             // section code currently scrolled into view
 }
 ```
 
@@ -87,28 +121,30 @@ State mutates in place. Only the affected sticker circle gets a CSS class toggle
 ### Sticky header
 
 - App name "GoalSticker26" (left)
-- `<select>` dropdown listing all 48 teams (right)
-- Selecting a team calls `scrollIntoView({ behavior: 'smooth', block: 'start' })` on that section
+- `<select>` dropdown listing all 49 sections — FWC first, then all 48 teams (right)
+- Selecting a section calls `scrollIntoView({ behavior: 'smooth', block: 'start' })` on that section element
 
-### Team sections (scrollable, one after another)
+### Section list (scrollable, one after another)
+
+Order: FWC section first, then 48 national team sections in album order.
 
 Each section:
-- Team name + flag emoji as heading
-- 5-column × 4-row grid (5×4 = 20 stickers)
-- Each cell: a circle element containing the sticker number
+- Section name + flag emoji as heading (🌍 for FWC)
+- Grid of sticker circles — 5 columns, rows as needed (FWC: 4 rows of 5 = 20; teams: 4 rows of 5 = 20)
+- Each cell: a circle element displaying the sticker label
 
 ### Sticker circle states
 
 | State | Visual |
 |-------|--------|
 | Not owned | Circle outline only, no fill |
-| Owned | Full circle filled with team color, light/dark number text for contrast |
+| Owned | Full circle filled with section color, light/dark number text for contrast |
 
-Single tap toggles state → updates class → persists to localStorage.
+Single tap toggles state → updates CSS class → persists to localStorage.
 
 ### Mobile viewport sizing
 
-The sticky header + first team section is sized to fill exactly `100dvh` — the first team is fully visible without scrolling on a phone screen. Subsequent teams are reached by scrolling down.
+The sticky header + first section (FWC) is sized to fill exactly `100dvh` — fully visible without scrolling on a phone. Subsequent sections reached by scrolling down.
 
 ## CI/CD
 
@@ -145,7 +181,9 @@ Live URL: `https://darkokostic95.github.io/GoalSticker26/`
 |----------|-----------|
 | localStorage only | Zero infrastructure, works offline at swap meets |
 | Binary have/don't have | Fastest interaction, sufficient for the use case |
+| `stickers: string[]` instead of `count: number` | FWC section has non-numeric codes; generalising to labels covers both cases cleanly |
 | Vanilla TS, no framework | App is small enough; no reactive framework overhead |
 | Vite build | Modern DX, static output, trivial GitHub Pages CI |
-| Hard-coded team data | Album structure is fixed; a config file is easier than a data-entry UI |
+| Hard-coded section data | Album structure is fixed; a typed config file is easier than a data-entry UI |
 | No routing | Single scrollable document; dropdown jumps to section |
+| FWC section first | Matches physical album order |
