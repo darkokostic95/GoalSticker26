@@ -1,0 +1,108 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0a0a0a;
+  color: #f0f0f0;
+  overscroll-behavior-y: contain;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* ── Header ── */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 56px;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a4a;
+  flex-shrink: 0;
+}
+
+.app-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #D4AF37;
+  letter-spacing: 0.02em;
+}
+
+.team-select {
+  font-size: 0.875rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #2a2a3e;
+  color: #f0f0f0;
+  max-width: 190px;
+  cursor: pointer;
+}
+
+/* ── Sections ── */
+main {
+  flex: 1;
+}
+
+.team-section {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.section-heading {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Grid ── */
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(4px, 1.5vw, 8px);
+}
+
+/* ── Circle ── */
+.sticker-circle {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: clamp(8px, 2.8vw, 13px);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  transition: transform 0.1s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  line-height: 1;
+}
+
+.sticker-circle:active {
+  transform: scale(0.88);
+}
+
+.sticker-circle.owned {
+  border-color: transparent;
+  /* background-color and color set inline by updateCircle() */
+}
